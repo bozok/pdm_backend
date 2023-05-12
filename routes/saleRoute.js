@@ -11,11 +11,11 @@ const {
 } = require("../controllers/saleController");
 
 router.post("/new", protect, addSale);
-router.get("/list", getSales);
+router.get("/list", protect, getSales);
 router.get("/:id", protect, getSale);
 router.patch("/:id", protect, updateSale);
 
-router.get("/IG/:id", getSaleIG);
+router.get("/IG/:id", protect, getSaleIG);
 router.put("/IG/note/:id", protect, newNoteSaleIG);
 
 module.exports = router;
