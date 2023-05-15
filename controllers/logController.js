@@ -2,17 +2,17 @@ const Log = require("../models/logModel");
 
 const addLog = async (type, result, text, user) => {
   try {
-    const log = await Log.create({
-      actionType: type,
-      actionResult: result,
-      actionText: text,
-      doneBy: user.firstName + " " + user.lastName,
-      doneByRegion: user.region,
-      doneByOffice: user.office,
-    });
-    if (!log) {
-      console.log("Geçersiz log bilgisi");
-    }
+    // const log = await Log.create({
+    //   actionType: type,
+    //   actionResult: result,
+    //   actionText: text,
+    //   doneBy: user.firstName + " " + user.lastName,
+    //   doneByRegion: user.region,
+    //   doneByOffice: user.office,
+    // });
+    // if (!log) {
+    //   console.log("Geçersiz log bilgisi");
+    // }
   } catch (error) {
     console.log(error);
   }
