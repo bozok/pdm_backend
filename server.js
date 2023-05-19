@@ -27,7 +27,11 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://pdm-frontend-app.onrender.com"],
+    origin: [
+      "http://localhost:5173",
+      "https://pdm-frontend-app.onrender.com",
+      "https://master.d1fdl3q9rjtb7y.amplifyapp.com",
+    ],
     //origin: "*",
     credentials: true,
   })
