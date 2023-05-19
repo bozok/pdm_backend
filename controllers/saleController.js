@@ -159,7 +159,7 @@ const getSaleIG = async (req, res) => {
   if (!sale) {
     return res.status(404).json({ message: "Satış kaydı bulunamadı" });
   } else {
-    return res.status(200).json({ data: sale });
+    return res.status(200).json({ data: sale[0] });
   }
 };
 
@@ -262,6 +262,56 @@ const newNoteSaleIG = async (req, res) => {
   }
 };
 
+const updateSaleIG = async (req, res) => {
+  const saleId = req.params.id;
+  const {
+    detailId,
+    isEducationTaken,
+    educationTakenDate,
+    isWorkplaceOpen,
+    workplaceOpenDate,
+    isPartnered,
+    hasTraderRecord,
+    hasPttRecord,
+    declarationSent,
+    declarationApproved,
+    status,
+  } = req.body;
+  console.log(saleId);
+  console.log(detailId);
+  const saleDetailIG = await SaleIG.findByIdAndUpdate(
+    detailId,
+    {
+      isEducationTaken,
+      educationTakenDate,
+      isWorkplaceOpen,
+      workplaceOpenDate,
+      isPartnered,
+      hasTraderRecord,
+      hasPttRecord,
+      declarationSent,
+      declarationApproved,
+      status,
+    },
+    { new: true }
+  );
+  const saleIG = await Sale.findByIdAndUpdate(
+    saleId,
+    {
+      status,
+    },
+    { new: true }
+  );
+
+  if (!saleDetailIG || !saleIG) {
+    return res.status(404).json({ message: "Satış detay bilgisi bulunamadı" });
+  } else {
+    return res.status(200).json({
+      message: "Satış detay bilgileri güncellendi",
+    });
+  }
+};
+
 module.exports = {
   addSale,
   getSale,
@@ -269,4 +319,5 @@ module.exports = {
   getSales,
   updateSale,
   newNoteSaleIG,
+  updateSaleIG,
 };

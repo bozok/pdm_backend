@@ -169,7 +169,9 @@ const getUser = async (req, res) => {
 };
 
 const getUsers = async (req, res) => {
-  const users = await User.find()
+  const users = await User.find({
+    role: { $ne: "sysgod" },
+  })
     .select("-password")
     .select("-createdAt")
     .select("-updatedAt");
