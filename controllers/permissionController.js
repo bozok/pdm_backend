@@ -22,8 +22,8 @@ const getPermissions = async (req, res) => {
     .select("-createdAt")
     .select("-updatedAt")
     .select("-children")
-    .select({ new: true });
-  const roleItems = await Role.find()
+    .sort({ menuOrder: 1 });
+  const roleItems = await Role.find({ name: { $ne: "sysgod" } })
     .select("-createdAt")
     .select("-updatedAt")
     .select("-status");
@@ -47,6 +47,7 @@ const getPermissions = async (req, res) => {
   if (!menuItems) {
     return res.status(404).json({ message: "Kayıtlı menu sekmesi bulunmuyor" });
   } else {
+    //console.log(menuTemp);
     return res.status(200).json({ data: menuTemp });
   }
 };
