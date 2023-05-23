@@ -8,7 +8,7 @@ const {
   updateMenuItem,
 } = require("../controllers/menuItemController");
 
-router.post("/new", protect, addMenuItem);
+router.post("/new", addMenuItem);
 router.get("/list", protect, getMenuItems);
 router.get("/:id", protect, getMenuItem);
 router.patch("/:id", protect, updateMenuItem);

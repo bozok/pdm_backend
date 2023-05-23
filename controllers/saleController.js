@@ -1,4 +1,8 @@
 const mongoose = require("mongoose");
+const { DeleteObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const s3 = require("../utils/s3");
+
 const Sale = require("../models/saleModel");
 const SaleIG = require("../models/salesIgModel");
 const SaleType = require("../models/saleTypeModel");
@@ -30,6 +34,12 @@ const addSale = async (req, res) => {
         .json({ message: "Lütfen tüm gerekli alanları doldurun" });
     }
     const user = req.user;
+    const initializeHistory = {
+      historyText: "Proje kaydı yapıldı",
+      userId: user._id,
+      userName: user.firstName + " " + user.lastName,
+      createdAt: Date.now(),
+    };
     const newNote = {
       note: note,
       userId: user._id,
@@ -44,7 +54,8 @@ const addSale = async (req, res) => {
       customerId,
       price,
       currency,
-      notes: note.length > 0 ? newNote : [],
+      notes: note.length > 0 ? [newNote] : [],
+      history: initializeHistory,
       assignedId,
       registrantId: user._id,
       status: "Yeni",
@@ -100,6 +111,16 @@ const getSaleIG = async (req, res) => {
       $match: { _id: saleId },
     },
     {
+      $set: {
+        notes: {
+          $sortArray: {
+            input: "$notes",
+            sortBy: { createdAt: -1 },
+          },
+        },
+      },
+    },
+    {
       $lookup: {
         from: "salesigs",
         localField: "_id",
@@ -143,6 +164,7 @@ const getSaleIG = async (req, res) => {
         price: 1,
         currency: 1,
         notes: 1,
+        history: 1,
         assignedName: "$assigned_detail.firstName",
         assignedSurname: "$assigned_detail.lastName",
         assignedOffice: "$assigned_detail.office",
@@ -160,17 +182,6 @@ const getSaleIG = async (req, res) => {
     return res.status(404).json({ message: "Satış kaydı bulunamadı" });
   } else {
     return res.status(200).json({ data: sale[0] });
-  }
-};
-
-const getSales_oldway = async (req, res) => {
-  const sales = await Sale.find().select("-updatedAt");
-  if (!sales) {
-    return res
-      .status(404)
-      .json({ message: "Sistemde kayıtlı satış kaydı bulunamadı" });
-  } else {
-    return res.status(200).json({ data: sales });
   }
 };
 
@@ -275,10 +286,19 @@ const updateSaleIG = async (req, res) => {
     hasPttRecord,
     declarationSent,
     declarationApproved,
+    kosgebFormFiled,
+    machineInfoFilled,
+    projectFileReady,
+    isProjectUploaded,
+    kosgebStatus,
+    submittedDate,
+    revisionDate,
+    revisionReason,
+    denyDate,
+    denyReason,
+    denyCounter,
     status,
   } = req.body;
-  console.log(saleId);
-  console.log(detailId);
   const saleDetailIG = await SaleIG.findByIdAndUpdate(
     detailId,
     {
@@ -291,6 +311,17 @@ const updateSaleIG = async (req, res) => {
       hasPttRecord,
       declarationSent,
       declarationApproved,
+      kosgebFormFiled,
+      machineInfoFilled,
+      projectFileReady,
+      isProjectUploaded,
+      kosgebStatus,
+      submittedDate,
+      revisionDate,
+      revisionReason,
+      denyDate,
+      denyReason,
+      denyCounter,
       status,
     },
     { new: true }
@@ -312,6 +343,91 @@ const updateSaleIG = async (req, res) => {
   }
 };
 
+const uploadFileSaleIG = async (req, res) => {
+  try {
+    const { detailId } = req.body;
+    const saleIg = await SaleIG.findById(detailId);
+    for (let i = 0; i < req.files.length; i++) {
+      const newDocument = {
+        url: req.files[i].location,
+        key: req.files[i].key,
+        bucket: req.files[i].bucket,
+      };
+      console.log(newDocument);
+      await saleIg.updateOne({ $push: { documents: newDocument } });
+    }
+    return res.status(200).json({
+      message: "Döküman(lar) sisteme yüklendi.",
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteFileSaleIG = async (req, res) => {
+  try {
+    const detailId = req.params.id;
+    const { docId, docKey } = req.body;
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.AWS_BUCKET,
+      Key: docKey,
+    });
+
+    const response = await s3.send(command);
+    if (response.$metadata.httpStatusCode == 204) {
+      const saleIg = await SaleIG.findById(detailId);
+      if (saleIg) {
+        await saleIg.updateOne({ $pull: { documents: { _id: docId } } });
+        return res.status(200).json({
+          message: "Döküman silme başarılı.",
+        });
+      } else {
+        return res.status(400).json({
+          message: "Satış detayı bulunamadı.",
+        });
+      }
+    } else {
+      return res.status(400).json({
+        message: "Döküman silmede hata.",
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getFileSaleIG = async (req, res) => {
+  try {
+    const { docId, docKey } = req.body;
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_BUCKET,
+      Key: docKey,
+    });
+    const file = await getSignedUrl(s3, command, { expiresIn: 60 * 1 });
+    return res.status(200).json({
+      message: "Döküman cekme başarılı.",
+      fileUrl: file,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const changeAssigneeSale = async (req, res) => {
+  const saleId = req.params.id;
+  const { newAssigneeId } = req.body;
+  const sale = await Sale.findByIdAndUpdate(
+    saleId,
+    {
+      assignedId: newAssigneeId,
+    },
+    { new: true }
+  );
+  return res
+    .status(200)
+    .json({ message: "Atanan çalışan bilgisi güncellendi.", data: true });
+};
+
 module.exports = {
   addSale,
   getSale,
@@ -320,4 +436,8 @@ module.exports = {
   updateSale,
   newNoteSaleIG,
   updateSaleIG,
+  uploadFileSaleIG,
+  deleteFileSaleIG,
+  getFileSaleIG,
+  changeAssigneeSale,
 };

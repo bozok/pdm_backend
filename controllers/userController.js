@@ -140,12 +140,12 @@ const newUser = async (req, res) => {
       role,
     });
     if (user) {
-      addLog(
-        "Yeni Kullanıcı Kaydı",
-        "-",
-        "Kullanıcı: " + user.firstName + " " + user.lastName,
-        req.user
-      );
+      // addLog(
+      //   "Yeni Kullanıcı Kaydı",
+      //   "-",
+      //   "Kullanıcı: " + user.firstName + " " + user.lastName,
+      //   req.user
+      // );
       return res.status(201).json({ message: "Yeni kullanıcı kaydı başarılı" });
     } else {
       return res.status(400).json({ message: "Geçersiz kullanıcı bilgisi" });
@@ -346,14 +346,15 @@ const loginUser = async (req, res) => {
     res.cookie("token", token, {
       path: "/",
       httpOnly: true,
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 3), // 3 hours
+      expires: new Date(Date.now() + 1000 * 60 * 60 * 5), // 5 hours
       //1 day = 1000msn = 1sn * 60 = 1min * 60 = 1 hour * 24 = 1 day
       sameSite: "none",
       secure: true,
     });
-    // expires: new Date(Date.now() + 1000 * 60 * 1 * 1), 1 minute
-    // expires: new Date(Date.now() + 1000 * 60 * 60 * 1), 1 hour
-    // expires: new Date(Date.now() + 1000 * 60 * 60 * 24), 1 day
+    // expires: new Date(Date.now() + 1000 * 60 * 60 * 3), // 3 hours
+    // expires: new Date(Date.now() + 1000 * 60 * 1 * 1), // 1 minute
+    // expires: new Date(Date.now() + 1000 * 60 * 60 * 1), // 1 hour
+    // expires: new Date(Date.now() + 1000 * 60 * 60 * 24), // 1 day
     addLog("Oturum Açma", "-", "-", user);
     const {
       _id,

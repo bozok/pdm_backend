@@ -42,6 +42,17 @@ const saleSchema = mongoose.Schema(
         createdAt: Date,
       },
     ],
+    history: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "users",
+        },
+        userName: String,
+        historyText: String,
+        createdAt: Date,
+      },
+    ],
     assignedId: {
       type: mongoose.Schema.Types.ObjectId,
       trim: true,

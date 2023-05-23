@@ -38,7 +38,7 @@ const userSchema = mongoose.Schema(
       type: String,
       required: [false, "Please add a photo"],
       default:
-        "https://res.cloudinary.com/fatihindesign/image/upload/v1680868862/pdm/profile/defaulProfileImage_vzcpkf_pgjscr_tij9wy.png",
+        "https://res.cloudinary.com/fatihindesign/image/upload/v1684851137/pdm/profile/defaulProfileImage_hf63zq.png",
     },
     office: {
       type: String,
