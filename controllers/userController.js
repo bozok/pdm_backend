@@ -1,7 +1,10 @@
 const User = require("../models/userModel");
+const Token = require("../models/tokenModel");
+const crypto = require("crypto");
 const { addLog } = require("../controllers/logController");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const sendEmail = require("../utils/sendEmail");
 // const { v4 } = require("uuid");
 // const {
 //   DynamoDBClient,
@@ -204,7 +207,6 @@ const getUsersByRole = async (req, res) => {
 
 const getUsersByOffice = async (req, res) => {
   const office = req.params.id;
-  console.log("office");
   const users = await User.find({
     status: { $ne: false },
     office,
@@ -393,7 +395,6 @@ const logoutUser = async (req, res) => {
     sameSite: "none",
     secure: true,
   });
-  console.log(req.user);
   addLog("Oturum Kapatma", "Başarılı", "-", req.user);
   return res.status(200).json({ message: "Oturum kapatma başarılı" });
 };
@@ -433,6 +434,77 @@ const changePassword = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+  }
+  let oldToken = await Token.findOne({ userId: user._id });
+  if (oldToken) {
+    await oldToken.deleteOne();
+  }
+  let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  await new Token({
+    userId: user._id,
+    token: hashedToken,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 30 * (60 * 1000), // 30 minutes
+  }).save();
+  const resetURL = `${process.env.FRONTEND_URL}/resetpassword/${resetToken}`;
+  const message = `
+  <h2>Merhaba ${user.firstName} ${user.lastName},</h2>
+  <p>Aşağıdaki bağlantıyı kullanarak şifrenizi sıfırlaya bilirsiniz.</p>
+  <p>Bu bağlantı 30 dakika için geçerlidir.</p>
+  <a href=${resetURL} clicktracking=off>Şifrenizi sıfırlamak için tıklayınız</a>
+  <p>Saygılarımızla...</p>
+  <h3>Proje Danışma Merkezi</h3>
+  `;
+  const subject = "Şifre sıfırlama talebi - Proje Danışma Merkezi";
+  const send_to = user.email;
+  const sent_from = process.env.EMAIL_USER;
+  try {
+    await sendEmail(subject, message, send_to, sent_from);
+    return res.status(200).json({
+      message: "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.",
+      status: res.statusCode,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "E-posta gönderiminde hata oluştu, daha sonra tekrar deneyiniz.",
+    });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { password } = req.body;
+  const { resetToken } = req.params;
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  const userToken = await Token.findOne({
+    token: hashedToken,
+    expiresAt: { $gt: Date.now() },
+  });
+  if (!userToken) {
+    return res
+      .status(500)
+      .json({ message: "Geçersiz yada süresi dolmuş bağlantı." });
+  }
+  const user = await User.findOne({ _id: userToken.userId });
+  user.password = password;
+  await user.save();
+  res.status(200).send({
+    message: "Şifre sırıflamanız başarılı, oturum açabilirsiniz.",
+    data: true,
+  });
+};
+
 module.exports = {
   newUser,
   getUser,
@@ -445,4 +517,6 @@ module.exports = {
   logoutUser,
   loginStatus,
   changePassword,
+  forgotPassword,
+  resetPassword,
 };
