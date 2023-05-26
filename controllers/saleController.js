@@ -353,7 +353,6 @@ const uploadFileSaleIG = async (req, res) => {
         key: req.files[i].key,
         bucket: req.files[i].bucket,
       };
-      console.log(newDocument);
       await saleIg.updateOne({ $push: { documents: newDocument } });
     }
     return res.status(200).json({
@@ -426,6 +425,24 @@ const changeAssigneeSale = async (req, res) => {
   return res
     .status(200)
     .json({ message: "Atanan çalışan bilgisi güncellendi.", data: true });
+};
+
+const approveSale = async (req, res) => {
+  const saleId = req.params.id;
+  const saleIG = await Sale.findByIdAndUpdate(
+    saleId,
+    {
+      status: "Proje Yüklenecek",
+    },
+    { new: true }
+  );
+  if (saleIG) {
+    return res.status(200).json({ message: "Proje onaylandı.", data: true });
+  } else {
+    return res
+      .status(400)
+      .json({ message: "Proje onayında hata.", data: false });
+  }
 };
 
 module.exports = {

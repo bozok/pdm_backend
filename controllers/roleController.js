@@ -39,12 +39,21 @@ const getRole = async (req, res) => {
 };
 
 const getRoles = async (req, res) => {
-  const roles = await Role.find({
-    name: { $ne: "sysgod" },
-  })
-    .select("-createdAt")
-    .select("-updatedAt")
-    .select("-status");
+  const user = req.user;
+  let roles = null;
+  if (user.role == "sysgod" || user.role == "Admin") {
+    roles = await Role.find({ name: { $ne: "sysgod" } })
+      .select("-createdAt")
+      .select("-updatedAt")
+      .select("-status");
+  } else {
+    roles = await Role.find({
+      name: { $nin: ["sysgod", "Admin"] },
+    })
+      .select("-createdAt")
+      .select("-updatedAt")
+      .select("-status");
+  }
   if (!roles) {
     return res.status(404).json({ message: "Kayıtlı rol bulunmuyor" });
   } else {

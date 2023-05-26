@@ -57,9 +57,21 @@ const getMenuItem = async (req, res) => {
   }
 };
 
-const getMenuItems = async (req, res) => {
+const getMenuItemsByRole = async (req, res) => {
   const userRole = req.user.role;
   const menuItems = await MenuItem.find({ canView: userRole })
+    .select("-createdAt")
+    .select("-updatedAt")
+    .sort({ menuOrder: 1 });
+  if (!menuItems) {
+    return res.status(404).json({ message: "Kayıtlı menu sekmesi bulunmuyor" });
+  } else {
+    return res.status(200).json({ data: menuItems });
+  }
+};
+
+const getMenuItems = async (req, res) => {
+  const menuItems = await MenuItem.find()
     .select("-createdAt")
     .select("-updatedAt")
     .sort({ menuOrder: 1 });
@@ -102,6 +114,7 @@ const updateMenuItem = async (req, res) => {
 module.exports = {
   addMenuItem,
   getMenuItem,
+  getMenuItemsByRole,
   getMenuItems,
   updateMenuItem,
 };

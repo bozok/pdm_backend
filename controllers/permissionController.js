@@ -23,7 +23,8 @@ const getPermissions = async (req, res) => {
     .select("-updatedAt")
     .select("-children")
     .sort({ menuOrder: 1 });
-  const roleItems = await Role.find({ name: { $ne: "sysgod" } })
+  //  const roleItems = await Role.find({ name: { $ne: "sysgod" } })
+  const roleItems = await Role.find()
     .select("-createdAt")
     .select("-updatedAt")
     .select("-status");
@@ -47,7 +48,6 @@ const getPermissions = async (req, res) => {
   if (!menuItems) {
     return res.status(404).json({ message: "Kayıtlı menu sekmesi bulunmuyor" });
   } else {
-    //console.log(menuTemp);
     return res.status(200).json({ data: menuTemp });
   }
 };
@@ -95,43 +95,47 @@ const addPermission = async (req, res) => {
 
 const removePermission = async (req, res) => {
   const { menu, role, type } = req.body;
-  switch (type) {
-    case "view":
-      await MenuItem.findOneAndUpdate(
-        {
-          title: menu,
-        },
-        { $pull: { canView: role } },
-        { new: true }
-      );
-      break;
-    case "read":
-      await MenuItem.findOneAndUpdate(
-        {
-          title: menu,
-        },
-        { $pull: { canRead: role } },
-        { new: true }
-      );
-      break;
-    case "write":
-      await MenuItem.findOneAndUpdate(
-        {
-          title: menu,
-        },
-        { $pull: { canWrite: role } },
-        { new: true }
-      );
-      break;
-    default:
+  if (role == "sysgod" || role == "Admin") {
+    return res.status(403).json({ message: "Yetkisiz işlem!" });
+  } else {
+    switch (type) {
+      case "view":
+        await MenuItem.findOneAndUpdate(
+          {
+            title: menu,
+          },
+          { $pull: { canView: role } },
+          { new: true }
+        );
+        break;
+      case "read":
+        await MenuItem.findOneAndUpdate(
+          {
+            title: menu,
+          },
+          { $pull: { canRead: role } },
+          { new: true }
+        );
+        break;
+      case "write":
+        await MenuItem.findOneAndUpdate(
+          {
+            title: menu,
+          },
+          { $pull: { canWrite: role } },
+          { new: true }
+        );
+        break;
+      default:
+    }
+    addLog(
+      "Rol Yetkisi Çıkarma",
+      "-",
+      "Menu: " + menu + ", Rol: " + role + ", Yetki: " + type,
+      req.user
+    );
+    return res.status(200).json({ data: true });
   }
-  addLog(
-    "Rol Yetkisi Çıkarma",
-    "-",
-    "Menu: " + menu + ", Rol: " + role + ", Yetki: " + type,
-    req.user
-  );
-  return res.status(200).json({ data: true });
 };
 
 module.exports = {

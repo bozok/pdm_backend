@@ -442,7 +442,18 @@ const forgotPassword = async (req, res) => {
   }
   let oldToken = await Token.findOne({ userId: user._id });
   if (oldToken) {
-    await oldToken.deleteOne();
+    var expDate = new Date(oldToken.expiresAt);
+    expDate.setTime(expDate.getTime() + 3 * 60 * 60 * 1000);
+    var currentDate = new Date();
+    currentDate.setTime(currentDate.getTime() + 3 * 60 * 60 * 1000);
+    if (expDate < currentDate) {
+      await oldToken.deleteOne();
+    } else {
+      return res.status(400).json({
+        message:
+          "Son yarım saat içinde bir talebiniz bulunuyor. Daha sonra tekrar deneyiniz.",
+      });
+    }
   }
   let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
   const hashedToken = crypto
