@@ -457,4 +457,5 @@ module.exports = {
   deleteFileSaleIG,
   getFileSaleIG,
   changeAssigneeSale,
+  approveSale,
 };
