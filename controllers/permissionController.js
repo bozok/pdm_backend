@@ -138,8 +138,31 @@ const removePermission = async (req, res) => {
   }
 };
 
+const updateViewPermission = async (req, res) => {
+  const { menuId, roles } = req.body;
+  let newRoles = ["sysgod", ...roles];
+  if (roles.includes("sysgod")) {
+    return res
+      .status(403)
+      .json({ data: false, message: "sysgod yetklileri kaldırılamaz" });
+  } else {
+    const result = await MenuItem.findOneAndUpdate(
+      {
+        _id: menuId,
+      },
+      { canView: newRoles },
+      { new: true }
+    );
+    return res.status(200).json({
+      data: true,
+      message: result.title + " menüsü için yetkileri güncellendi",
+    });
+  }
+};
+
 module.exports = {
   getPermissions,
   addPermission,
   removePermission,
+  updateViewPermission,
 };
